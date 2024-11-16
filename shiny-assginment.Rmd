@@ -1,0 +1,81 @@
+---
+title: "shiny assignment"
+author: "Yangyu Chen"
+output: pdf_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+```{r}
+# Load necessary libraries
+library(shiny)
+library(microbenchmark)
+
+# Define the user interface
+ui <- fluidPage(
+  titlePanel("Shiny Performance Comparison"),
+  sidebarLayout(
+    sidebarPanel(
+      # Dropdown menu to select dataset
+      selectInput("dataset", label = "Choose a Dataset", choices = ls("package:datasets")),
+      # Instructional text for users
+      helpText("Select a dataset to view summary statistics and benchmark results.")
+    ),
+    mainPanel(
+      # Tabs to separate outputs for non-reactive and reactive methods
+      tabsetPanel(
+        tabPanel("Non-Reactive Method", verbatimTextOutput("summary_non_reactive")),
+        tabPanel("Reactive Method", verbatimTextOutput("summary_reactive"))
+      )
+    )
+  )
+)
+
+# Define the server logic
+server <- function(input, output, session) {
+  
+  # Non-reactive approach: Calculate summary statistics directly
+  output$summary_non_reactive <- renderPrint({
+    # Use microbenchmark to measure execution time
+    mb_non_reactive <- microbenchmark(
+      {
+        dataset <- get(input$dataset, "package:datasets")  # Fetch the dataset
+        summary(dataset)  # Calculate summary statistics
+      },
+      times = 10  # Number of repetitions for benchmarking
+    )
+    # Print benchmarking results
+    print(mb_non_reactive)
+    # Print dataset summary
+    dataset <- get(input$dataset, "package:datasets")
+    summary(dataset)
+  })
+  
+  # Reactive approach: Cache the dataset for optimized performance
+  dataset <- reactive({
+    get(input$dataset, "package:datasets")  # Fetch and cache the dataset
+  })
+  
+  # Reactive method: Use cached dataset for summary statistics
+  output$summary_reactive <- renderPrint({
+    # Use microbenchmark to measure execution time
+    mb_reactive <- microbenchmark(
+      {
+        summary(dataset())  # Calculate summary statistics using cached dataset
+      },
+      times = 10  # Number of repetitions for benchmarking
+    )
+    # Print benchmarking results
+    print(mb_reactive)
+    # Print dataset summary
+    summary(dataset())
+  })
+}
+
+# Run the Shiny application
+shinyApp(ui, server)
+
+
+```

@@ -1,0 +1,12 @@
+name: MA-615-shiny-assignment
+title: MA-615-shiny-assignment
+username: yangyuchenapp
+account: yangyuchenapp
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13356928
+bundleId: 9371471
+url: https://yangyuchenapp.shinyapps.io/MA-615-shiny-assignment/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
