@@ -9,73 +9,186 @@ output: pdf_document
 knitr::opts_chunk$set(echo = FALSE)
 ```
 ```{r}
-# Load necessary libraries
 library(shiny)
-library(microbenchmark)
+library(DT)  # Load the DT package
 
-# Define the user interface
+# Use iris dataset
+data("iris")
+iris_data <- iris
+
+# Define the User Interface
 ui <- fluidPage(
-  titlePanel("Shiny Performance Comparison"),
+  titlePanel("Iris Dataset with DT"),
   sidebarLayout(
     sidebarPanel(
-      # Dropdown menu to select dataset
-      selectInput("dataset", label = "Choose a Dataset", choices = ls("package:datasets")),
-      # Instructional text for users
-      helpText("Select a dataset to view summary statistics and benchmark results.")
+      helpText("This app displays the Iris dataset using DT for rendering tables.")
     ),
     mainPanel(
-      # Tabs to separate outputs for non-reactive and reactive methods
-      tabsetPanel(
-        tabPanel("Non-Reactive Method", verbatimTextOutput("summary_non_reactive")),
-        tabPanel("Reactive Method", verbatimTextOutput("summary_reactive"))
-      )
+      h3("Iris Dataset"),
+      DTOutput("table")  # Use DTOutput from DT package
     )
   )
 )
 
-# Define the server logic
+# Define the Server Logic
 server <- function(input, output, session) {
-  
-  # Non-reactive approach: Calculate summary statistics directly
-  output$summary_non_reactive <- renderPrint({
-    # Use microbenchmark to measure execution time
-    mb_non_reactive <- microbenchmark(
-      {
-        dataset <- get(input$dataset, "package:datasets")  # Fetch the dataset
-        summary(dataset)  # Calculate summary statistics
-      },
-      times = 10  # Number of repetitions for benchmarking
+  # Render the data table
+  output$table <- DT::renderDT({  # Use renderDT from DT package
+    iris_data
+  }, options = list(
+    dom = 't',        # Suppress additional controls
+    ordering = FALSE, # Disable sorting
+    pageLength = 10   # Show 10 rows by default
+  ))
+}
+
+# Run the Shiny App
+shinyApp(ui = ui, server = server)
+
+```
+# --------------------------------------------------------------------------------
+# 1. What is the difference between Hadley_1 and Hadley_2?
+# --------------------------------------------------------------------------------
+
+# Hadley_1:
+# - It uses str(iris_data), which provides structural information about the dataset, 
+#   including column names, types, and sample values.
+# - This approach analyzes the entire dataset, making it slower for larger datasets.
+
+# Hadley_2:
+# - It uses head(iris_data, 10), which displays the first 10 rows of the dataset.
+# - This approach is optimized for quick previews of the data content and is faster.
+
+# Performance Comparison:
+# - Hadley_1 is slower because it processes the entire dataset to analyze structure.
+# - Hadley_2 is faster as it focuses on a subset of the data (first 10 rows).
+
+# Conclusion:
+# - Hadley_2 improves performance and is better suited for quick previews in Shiny apps.
+# - Hadley_1 is more informative for initial structural analysis of datasets.
+
+# --------------------------------------------------------------------------------
+# 2. Prepare Chapters 2-4 from Mastering Shiny
+# --------------------------------------------------------------------------------
+
+# Section 2.3.5: Pairing Output Functions with Render Functions
+# - renderPrint(summary(mtcars)) -> verbatimTextOutput
+# - renderText("Good morning!") -> textOutput
+# - renderPrint(t.test(1:5, 2:6)) -> verbatimTextOutput
+# - renderText(str(lm(mpg ~ wt, data = mtcars))) -> textOutput
+```{r}
+# Section 3.3.6: Scatterplot of Random Numbers
+ui_scatterplot <- fluidPage(
+  plotOutput("plot", width = "700px", height = "300px")
+)
+
+server_scatterplot <- function(input, output, session) {
+  output$plot <- renderPlot({
+    plot(1:5, 
+         main = "Scatterplot of Random Numbers", 
+         xlab = "Index", 
+         ylab = "Value", 
+         col = "blue", 
+         pch = 16)
+  }, res = 96)
+}
+
+# Section 4.8: Render Data Table with Specific Options
+# Section 4.8: Render Data Table with Specific Options
+library(DT) # Make sure the DT library is loaded
+
+ui_datatable <- fluidPage(
+  DTOutput("table")  # Use DTOutput instead of dataTableOutput
+)
+
+server_datatable <- function(input, output, session) {
+  output$table <- renderDT({  # Use renderDT instead of renderDataTable
+    iris_data
+  }, options = list(
+    dom = 't',       # Suppress controls
+    ordering = FALSE, # Disable sorting
+    pageLength = nrow(iris_data) # Display all rows
+  ))
+}
+
+
+# Using reactable for enhanced table interactivity:
+ui_reactable <- fluidPage(
+  reactableOutput("table")
+)
+
+server_reactable <- function(input, output, session) {
+  output$table <- renderReactable({
+    reactable(
+      iris_data,
+      searchable = TRUE,
+      sortable = TRUE,
+      pagination = TRUE
     )
-    # Print benchmarking results
-    print(mb_non_reactive)
-    # Print dataset summary
-    dataset <- get(input$dataset, "package:datasets")
-    summary(dataset)
-  })
-  
-  # Reactive approach: Cache the dataset for optimized performance
-  dataset <- reactive({
-    get(input$dataset, "package:datasets")  # Fetch and cache the dataset
-  })
-  
-  # Reactive method: Use cached dataset for summary statistics
-  output$summary_reactive <- renderPrint({
-    # Use microbenchmark to measure execution time
-    mb_reactive <- microbenchmark(
-      {
-        summary(dataset())  # Calculate summary statistics using cached dataset
-      },
-      times = 10  # Number of repetitions for benchmarking
-    )
-    # Print benchmarking results
-    print(mb_reactive)
-    # Print dataset summary
-    summary(dataset())
   })
 }
 
-# Run the Shiny application
-shinyApp(ui, server)
+# --------------------------------------------------------------------------------
+# Hadley_1 Implementation
+# --------------------------------------------------------------------------------
+
+# Define the User Interface for Hadley_1
+ui_hadley_1 <- fluidPage(
+  titlePanel("Hadley_1: Iris Dataset Structure"),
+  sidebarLayout(
+    sidebarPanel(
+      helpText("This app displays the structure of the Iris dataset using str().")
+    ),
+    mainPanel(
+      h3("Structure of Iris Dataset"),
+      verbatimTextOutput("structure")
+    )
+  )
+)
+
+# Define the Server Logic for Hadley_1
+server_hadley_1 <- function(input, output, session) {
+  output$structure <- renderPrint({
+    time_taken <- system.time({
+      structure_output <- str(iris_data)
+    })
+    cat("Execution Time for Structure Analysis:\n")
+    print(time_taken)
+    structure_output
+  })
+}
+
+# --------------------------------------------------------------------------------
+# Hadley_2 Implementation
+# --------------------------------------------------------------------------------
+
+# Define the User Interface for Hadley_2
+ui_hadley_2 <- fluidPage(
+  titlePanel("Hadley_2: Iris Dataset Preview"),
+  sidebarLayout(
+    sidebarPanel(
+      helpText("This app displays a preview of the Iris dataset using head().")
+    ),
+    mainPanel(
+      h3("Preview of Iris Dataset (First 10 Rows)"),
+      tableOutput("preview")
+    )
+  )
+)
+
+# Define the Server Logic for Hadley_2
+server_hadley_2 <- function(input, output, session) {
+  output$preview <- renderTable({
+    time_taken <- system.time({
+      preview_output <- head(iris_data, 10)
+    })
+    cat("Execution Time for Data Preview:\n")
+    print(time_taken)
+    preview_output
+  })
+}
+
+```
 
 
 ```
