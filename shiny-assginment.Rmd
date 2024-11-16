@@ -94,7 +94,6 @@ server_scatterplot <- function(input, output, session) {
 }
 
 # Section 4.8: Render Data Table with Specific Options
-# Section 4.8: Render Data Table with Specific Options
 library(DT) # Make sure the DT library is loaded
 
 ui_datatable <- fluidPage(
